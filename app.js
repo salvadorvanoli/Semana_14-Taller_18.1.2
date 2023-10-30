@@ -1,4 +1,13 @@
 const express = require("express"); // Importa ExpressJS. Más info de Express en =>https://expressjs.com/es/starter/hello-world.html
+const mariadb = require('mariadb');
+
+const pool = mariadb.createPool({
+  host: "localhost", 
+  user: "root", 
+  password: "12560", 
+  database:"planning",
+  connectionLimit: "5"
+});
 
 const app = express(); // Crea una instancia de ExpressJS
 
@@ -13,28 +22,60 @@ app.get("/", (req, res) => {
   res.send("<h1>Bienvenid@ al servidor</h1>");
 });
 
-app.get("/people", (req, res) => {
-  res.json(people); // Enviamos todo el array
+app.get("/people", async (req, res) => {
+  let conn;
+  try {
+
+	conn = await pool.getConnection();
+	const rows = await conn.query(
+    "SELECT * FROM todo"
+  );
+
+    res.json(rows);
+  } catch(error) {
+    res.status(500).json({message: "Se rompió el servidor"});
+  } finally {
+	  if (conn) conn.release();
+  }
 });
 
-app.get("/people/:index", (req, res) => {
-  /*La propiedad "params" del request permite acceder a los parámetros de la URL 
-    (importante no confundir con la "query", que serían los parámetros que se colocan 
-    luego del signo "?" en la URL)
-   */
-  res.json(people[req.params.index]); // Enviamos el elemento solicitado por su índice
+app.get("/people/:id", async (req, res) => {
+  let conn;
+  try {
+
+	conn = await pool.getConnection();
+	const rows = await conn.query(
+    "SELECT * FROM todo WHERE id=?",[req.params.id]
+  );
+
+    res.json(rows[0]);
+  } catch(error) {
+    res.status(500).json({message: "Se rompió el servidor"});
+  } finally {
+	  if (conn) conn.release();
+  }
 });
 
-app.post("/people", (req, res) => {
-  /* La propiedad "body" del request permite acceder a los datos 
-       que se encuentran en el cuerpo de la petición */
+// 13:35 del vídeo
 
-  people.push(req.body); // Añadimos un nuevo elemento al array
+app.post("/people", async (req, res) => {
+  let conn;
+  try {
 
-  res.json(req.body); // Le respondemos al cliente el objeto añadido
+	conn = await pool.getConnection();
+	const res = await conn.query(
+    `INSERT INTO todo(id, name, description, created_at, updated_at, satus) VALUE(?, ?, ?, ?, ?, ?);`,
+    [req.body.name, req.body.description, req.body.created_at, req.body.updated_at, req.body.status]
+  );
+    res.json({id: res.inertId, ...req.body});
+  } catch(error) {
+    res.status(500).json({message: "Se rompió el servidor"});
+  } finally {
+	  if (conn) conn.release();
+  }
 });
 
-app.put("/people/:index", (req, res) => {
+app.put("/people/:id", (req, res) => {
   /* COMPLETA EL CÓDIGO NECESARIO:
     Para que se pueda actualizar el objeto asociado al índice indicado en la URL 
   */
@@ -44,7 +85,7 @@ app.put("/people/:index", (req, res) => {
   res.json(req.body); // Muestro en pantalla el nuevo objeto en formato json
 });
 
-app.delete("/people/:index", (req, res) => {
+app.delete("/people/:id", (req, res) => {
   /* COMPLETA EL CÓDIGO NECESARIO:
     Para que se pueda eliminar el objeto asociado al índice indicado en la URL 
   */
