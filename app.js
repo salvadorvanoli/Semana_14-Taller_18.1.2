@@ -63,11 +63,11 @@ app.post("/people", async (req, res) => {
   try {
 
 	conn = await pool.getConnection();
-	const res = await conn.query(
-    `INSERT INTO todo(id, name, description, created_at, updated_at, satus) VALUE(?, ?, ?, ?, ?, ?);`,
+	const response = await conn.query(
+    `INSERT INTO todo(name, description, created_at, updated_at, status) VALUE(?, ?, ?, ?, ?)`,
     [req.body.name, req.body.description, req.body.created_at, req.body.updated_at, req.body.status]
   );
-    res.json({id: res.inertId, ...req.body});
+    res.json({ id: parseInt(response.insertId), ...req.body });
   } catch(error) {
     res.status(500).json({message: "Se rompió el servidor"});
   } finally {
@@ -75,24 +75,38 @@ app.post("/people", async (req, res) => {
   }
 });
 
-app.put("/people/:id", (req, res) => {
-  /* COMPLETA EL CÓDIGO NECESARIO:
-    Para que se pueda actualizar el objeto asociado al índice indicado en la URL 
-  */
+app.put("/people/:id", async (req, res) => {
+  let conn;
+  try {
 
-  people[req.params.index] = req.body; // Reemplazo el elemento pasado por parámetro por el nuevo introducido en el body
-
-  res.json(req.body); // Muestro en pantalla el nuevo objeto en formato json
+	conn = await pool.getConnection();
+	const response = await conn.query(
+    `UPDATE todo SET name=?, description=?, created_at=?, updated_at=?, status=? WHERE id=?`,
+    [req.body.name, req.body.description, req.body.created_at, req.body.updated_at, req.body.status, req.params.id]
+  );
+    res.json({id: req.params.id, ...req.body});
+  } catch(error) {
+    res.status(500).json({message: "Se rompió el servidor"});
+  } finally {
+	  if (conn) conn.release();
+  }
 });
 
-app.delete("/people/:id", (req, res) => {
-  /* COMPLETA EL CÓDIGO NECESARIO:
-    Para que se pueda eliminar el objeto asociado al índice indicado en la URL 
-  */
+app.delete("/people/:id", async (req, res) => {
+  let conn;
+  try {
 
-  res.json(people[req.params.index]); // Muestro en pantalla el objeto que va a ser eliminado
-
-  people.splice(req.params.index, 1); // Elimino el elemento del array
+	conn = await pool.getConnection();
+	const response = await conn.query(
+    `DELETE FROM todo WHERE id=?`,
+    [req.params.id]
+  );
+    res.json({id: req.params.id});
+  } catch(error) {
+    res.status(500).json({message: "Se rompió el servidor"});
+  } finally {
+	  if (conn) conn.release();
+  }
 });
 
 // Esta línea inicia el servidor para que escuche peticiones en el puerto indicado
