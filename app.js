@@ -56,8 +56,6 @@ app.get("/people/:id", async (req, res) => {
   }
 });
 
-// 13:35 del vídeo
-
 app.post("/people", async (req, res) => {
   let conn;
   try {
